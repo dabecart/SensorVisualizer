@@ -29,7 +29,7 @@ To add a widget:
     - **Variables**. The linked variable(s) for the visualization.
         - You may select an already used variable by searching for it or you may create a new one.
         - If “New variable” is selected, a new window will open.
-        - Once the variable is selected, the program will search for the variable inside `Variable._vbes` and attach the correspondent hook to the variable.
+        - Once the variable is selected, the program will search for the variable inside `Variable._vbes` and **attach the correspondent hook** to the variable.
 
     - **Visualization settings**.
         - In the case of graphs, you may select what type of graph to use. For each variable there may be some special fields, such as color, line width…
@@ -52,9 +52,11 @@ All created variables will be stored in a class variable `_vbes : List[Variables
 
 To add them on the “New variable” window:
 
-1.	First, select a source from the available sources. If the source you’re looking for doesn’t appear, you’ll have to create it by clicking “New Source”.
+1. First, select a source from the available sources. If the source you’re looking for doesn’t appear, you’ll have to create it by clicking “New Source”.
 
-2.	A list of available names will appear if the source is already giving out data. You may select one from the list or add your own.
+2. A list of available names will appear if the source is already giving out data. You may select one from the list or add your own.
+
+3. After that, you'll need to select a type for the variable. The program will automatically try to detect its type it if the source is giving it values. 
 
 ## Sources
 
