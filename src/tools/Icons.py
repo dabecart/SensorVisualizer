@@ -11,6 +11,7 @@
 # This project is licensed under the MIT License - see the LICENSE file for details.
 # **************************************************************************************************
 
+from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import QPixmap, QImage, QPainter, QIcon
 from PyQt6.QtSvg import QSvgRenderer
 from PyQt6.QtCore import QByteArray, QBuffer, QIODevice, QFile, Qt
@@ -26,8 +27,8 @@ class TrackableIcon(QIcon):
         self.__class__._instances.append(self)
         self.filePath = filePath
 
-    def setAssociatedWidget(self, associatedWidget):
-        self.associatedWidget = associatedWidget
+    def setAssociatedWidget(self, associatedWidget: QWidget):
+        self.associatedWidget: QWidget = associatedWidget
 
         # Remove the previously associated widget with this icon.
         instanceToDelete = None
@@ -48,15 +49,20 @@ class TrackableIcon(QIcon):
         
         self.swap(recolorSVG(self.filePath, color))
 
-        if hasattr(self.associatedWidget, 'setIcon'):
-            self.associatedWidget.setIcon(self)
-        elif hasattr(self.associatedWidget, 'setPixmap'):
-            if self.associatedWidget.pixmap() is None:
-                return
-            
-            width = self.associatedWidget.pixmap().width()
-            height = self.associatedWidget.pixmap().height()
-            self.associatedWidget.setPixmap(self.pixmap(width, height))
+        try:
+            if hasattr(self.associatedWidget, 'setIcon'):
+                self.associatedWidget.setIcon(self)
+            elif hasattr(self.associatedWidget, 'setPixmap'):
+                if self.associatedWidget.pixmap() is None:
+                    return
+                
+                width = self.associatedWidget.pixmap().width()
+                height = self.associatedWidget.pixmap().height()
+                self.associatedWidget.setPixmap(self.pixmap(width, height))
+        except:
+            # If the icon were to be deleted, it would throw a "wrapped C/C++ object of type x has 
+            # been deleted", so remove it in that case.
+            self.__class__._instances.remove(self)
 
     @classmethod
     def recolorAllIcons(cls, theme):

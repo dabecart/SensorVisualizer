@@ -6,12 +6,7 @@ import qdarktheme
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    qss = """
-    ContainerWidget {
-        background-color: transparent;
-    }
-    """
-    qdarktheme.setup_theme("auto", additional_qss=qss)
+    qdarktheme.setup_theme("auto")
 
     mainWindow = GUI()
     mainWindow.show()

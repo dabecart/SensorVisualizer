@@ -157,7 +157,7 @@ class GUI(QMainWindow):
             [redoAction,            ':edit-redo'        ],
             [projectSettings,       ':edit-settings'    ],   
             [addWidgetMenu,         ':widget-add'       ],
-            [addWidgetToolBarButton,            ':widget-add'       ],
+            [addWidgetToolBarButton,':widget-add'       ],
             [removeWidgetAction,    ':widget-remove'    ],    
             [duplicateWidgetAction, ':widget-duplicate' ],
             [programSettAction,     ':settings-program' ],    
@@ -270,16 +270,8 @@ class GUI(QMainWindow):
             self.createBlankTabWidget()
 
             with open(fileName, 'r') as inputFile:
-                inputDict: list[dict[str,any]] = json.load(inputFile)
-
-            # For every tab...
-            for tabNumber, tab in enumerate(inputDict):
-                self.addNewTab(tabNumber)
-                # ... set the tab name ...
-                self.tabWidget.setTabText(tabNumber, tab["tabName"])
-                # ... and add its windows.
-                for window in tab["windows"]:
-                    self.runAction("widget-add", None, window)
+                inputDict: dict[str,any] = json.load(inputFile)
+                self._fromDict(inputDict)
 
             self.currentFile = fileName
             self.statusBar.showMessage("File opened.", 3000)
@@ -309,7 +301,7 @@ class GUI(QMainWindow):
         if self.blankProgram:
             return
 
-        if not self._isFileSaved():
+        if not self.currentFile or not self._isFileSaved():
             reply = QMessageBox.question(self, 'Unsaved Changes',
                                          'You have unsaved changes. Do you want to save them?',
                                          QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No |
@@ -330,19 +322,39 @@ class GUI(QMainWindow):
         self.statusBar.showMessage("File closed.", 3000)
 
     def _isFileSaved(self) -> bool:
+        if self.currentFile is None:
+            return False
+
         currentFile = json.dumps(self._toDict())
         with open(self.currentFile, 'r') as saveFile:
             return currentFile == saveFile.read()
 
+    def _fromDict(self, inputDict: dict[str, any]):
+        tabList: list[dict[str, any]] = inputDict.get("tabs", [])
+        # For every tab...
+        for tabNumber, tab in enumerate(tabList):
+            self.addNewTab(tabNumber)
+            # ... set the tab name ...
+            self.tabWidget.setTabText(tabNumber, tab["tabName"])
+            # ... and add its windows.
+            for window in tab["windows"]:
+                self.runAction("widget-add", None, window)
+
+        self.tabWidget.setCurrentIndex(inputDict.get("selectedTab", 0))
+
     def _toDict(self) -> dict[str, any]:
-        saveDict: list[dict[str, any]] = []
+        tabList: list[dict[str, any]] = []
         for i in range(self.tabWidget.count() - 1):
             windowArea: WindowArea = self.tabWidget.widget(i)
-            saveDict.append({
+            tabList.append({
                 "tabName"   :   self.tabWidget.tabText(i),
                 "windows"   :   [window.toDict() for window in windowArea.subWindowList()]
             })
-        return saveDict
+        
+        return {
+            "selectedTab"   : self.tabWidget.currentIndex(),
+            "tabs"          : tabList
+        }
 
     def runAction(self, action: str, actionStack: str, *args):
         self.blankProgram = False
@@ -350,7 +362,7 @@ class GUI(QMainWindow):
         if action == 'change-program-settings':
             settingsWindow = SettingsWindow(self.config, self)
             settingsWindow.exec()
-        elif action.startswith("widget-add"):
+        elif action.startswith('widget-add'):
             # Create a new window that will contain the widget.
             window = Window(self.tabWidget.currentWidget())
 
@@ -359,7 +371,7 @@ class GUI(QMainWindow):
                 window.fromDict(args[0])
             else:
                 # Create a "default" widget.
-                widgetType: str = action[len("widget-add-"):]
+                widgetType: str = action[len('widget-add-'):]
                 widgetType: DataWidget = strToWidget(widgetType)
                 widget = widgetType(parent=window)
                 window.setWidget(widget)

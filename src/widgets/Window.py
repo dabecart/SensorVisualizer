@@ -338,24 +338,23 @@ class Window(QMdiSubWindow):
             "w"         : rect.width(),
             "h"         : rect.height(),
             "type"      : type(self.widget()).__name__,
-            "args"      : self.widget().toDict() if type(self.widget()) is DataWidget else None
+            "args"      : self.widget().toDict() if issubclass(type(self.widget()), DataWidget) else None
         }
 
     # Initialize the window properties and its content from a dictionary.
     def fromDict(self, startArgs: dict[str, any]):
-        rect = QRect(   
-            startArgs["x"],
-            startArgs["y"],
-            startArgs["w"],
-            startArgs["h"]
+        rect = QRect(
+            startArgs.get("x", 0),
+            startArgs.get("y", 0),
+            startArgs.get("w", 100),
+            startArgs.get("h", 100)
         )
         self.setGeometry(rect)
 
-        if startArgs["type"] is None:
-            return
-        
         # This "converts" from str to type, so then it can be instantiated.
-        widgetType: DataWidget = strToWidget(startArgs["type"])
-        widget = widgetType(parent=self, startArgs=startArgs["args"])
-        self.setWidget(widget)
-        self.setWindowTitle(widget.parentWindowName)
+        widgetType: type = strToWidget(startArgs.get("type", ""))
+        if widgetType is not None:
+            widget: DataWidget = widgetType(parent = self, 
+                                            startArgs = startArgs.get("args", None))
+            self.setWidget(widget)
+            self.setWindowTitle(widget.parentWindowName)
