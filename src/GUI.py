@@ -1,61 +1,215 @@
 from PyQt6.QtWidgets import (
-    QMainWindow, QTextEdit, QMenuBar, QTabWidget, QLabel, QWidget, QTabBar, QMenu, QLineEdit, 
+    QMainWindow, QStatusBar, QToolButton, QTabWidget, QLabel, QWidget, QTabBar, QMenu, QLineEdit, 
+    QMessageBox, QFileDialog
 )
-from PyQt6.QtGui import QAction, QContextMenuEvent, QFocusEvent, QKeyEvent
+from PyQt6.QtGui import QContextMenuEvent, QFocusEvent, QKeyEvent, QFontMetrics, QResizeEvent
 from PyQt6.QtCore import Qt
 
 from widgets.WindowArea import WindowArea
 from widgets.Window import Window
+from tools.UndoRedo import UndoRedo
+from tools.Icons import createIcon
+from tools.WidgetLocator import strToWidget
+from SettingsWindow import ProgramConfig, SettingsWindow
+
+import json
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from widgets.DataWidget import DataWidget
+
+import traceback
 
 class GUI(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("MDI Application")
+        self.setWindowTitle("Sensor Visualizer")
         self.setGeometry(100, 100, 800, 600)
+
+        # Stores the configuration of the program.
+        self.config = ProgramConfig()
+        # Field to save the currently opened file.
+        self.currentFile: str|None = None
+        # If no action has been done, then it's a blank program.
+        self.blankProgram: bool = True
 
         # Needed to trigger the focus out event on the QLineEdits inside the tabbed pane.
         self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
 
-        # Create a QTabWidget with tabs at the bottom
+        self.createBlankTabWidget()
+        # Add the initial tab.
+        self.addNewTab(number=0)
+
+        # Create menu bar.
+        self.menubar = self.menuBar()
+
+        fileMenu = self.menubar.addMenu('&File')
+
+        openAction = fileMenu.addAction('&Open...')
+        openAction.setShortcut("Ctrl+O")
+        openAction.setStatusTip("Open a file.")
+        openAction.triggered.connect(self.openFile)
+
+        saveAction = fileMenu.addAction('&Save')
+        saveAction.setShortcut("Ctrl+S")
+        saveAction.setStatusTip("Save the current file.")
+        saveAction.triggered.connect(self.saveFile)
+
+        closeFileAction = fileMenu.addAction('&Close file')
+        closeFileAction.setShortcut("Ctrl+W")
+        closeFileAction.setStatusTip("Close the current file.")
+        closeFileAction.triggered.connect(self.closeFile)
+
+        fileMenu.addSeparator()
+
+        quitAction = fileMenu.addAction('&Quit')
+        quitAction.setShortcut("Ctrl+Q")
+        quitAction.setStatusTip("Quit the application.")
+        quitAction.triggered.connect(self.close)
+
+        self.editMenu = self.menubar.addMenu('&Edit')
+
+        # Configure undo/redo.
+        UndoRedo.setGUI(self)
+
+        # Set up undo action.
+        undoAction = self.editMenu.addAction('&Undo')
+        undoAction.setShortcut("Ctrl+Z")
+        undoAction.setStatusTip("Undo the last operation.")
+        undoAction.triggered.connect(UndoRedo.undo)
+
+        # Set up redo action.
+        redoAction = self.editMenu.addAction('&Redo')
+        redoAction.setShortcut("Ctrl+Y")
+        redoAction.setStatusTip("Redo the last operation.")
+        redoAction.triggered.connect(UndoRedo.redo)
+
+        self.editMenu.addSeparator()
+
+        addWidgetMenu = self.editMenu.addMenu('&Add widget')
+        addWidgetMenu.menuAction().setStatusTip("Add a new widget.")
+        
+        addPlotWidgetAction = addWidgetMenu.addAction("&Plot widget")
+        addPlotWidgetAction.setStatusTip("Display a widget graph.")
+        addWidgetMenu.triggered.connect(lambda: self.runAction('widget-add-PlotWidget', 'undo'))
+
+        removeWidgetAction = self.editMenu.addAction('&Remove widget')
+        removeWidgetAction.setShortcut("Del")
+        removeWidgetAction.setStatusTip("Remove the selected widget.")
+        removeWidgetAction.triggered.connect(lambda: self.runAction('widget-remove', 'undo'))
+
+        duplicateWidgetAction = self.editMenu.addAction('&Duplicate widget')
+        duplicateWidgetAction.setShortcut("Alt+D")
+        duplicateWidgetAction.setStatusTip("Duplicate the selected widget.")
+        duplicateWidgetAction.triggered.connect(lambda: self.runAction('widget-duplicate', 'undo'))
+
+        self.editMenu.addSeparator()
+
+        projectSettings = self.editMenu.addAction('&Project settings')
+        projectSettings.setShortcut("Alt+.")
+        projectSettings.setStatusTip("Set the project and test configuration.")
+        projectSettings.triggered.connect(lambda: self.runAction('change-project-settings', 'undo'))
+
+        settingsMenu = self.menubar.addMenu('&Settings')
+        programSettAction = settingsMenu.addAction('&Program settings')
+        programSettAction.setShortcut("Ctrl+R")
+        programSettAction.setStatusTip("Configure the program behavior.")
+        programSettAction.triggered.connect(lambda: self.runAction('change-program-settings', 'undo'))
+
+        helpMenu = self.menubar.addMenu('&Help')
+        aboutAction = helpMenu.addAction('&About')
+        aboutAction.setShortcut("F1")
+        aboutAction.setStatusTip("Get help and info about this program.")
+        # TODO: Do the help menu.
+        aboutAction.triggered.connect(lambda: print("TODO: Show the HELP menu!"))
+
+        # Tool bars!
+        widgetToolBar = self.addToolBar('Widget')
+        widgetToolBar.setMovable(False)
+        addWidgetToolBarButton = QToolButton()
+        addWidgetToolBarButton.setMenu(addWidgetMenu)
+        addWidgetToolBarButton.setStatusTip(addWidgetMenu.menuAction().statusTip())
+        addWidgetToolBarButton.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        widgetToolBar.addWidget(addWidgetToolBarButton)
+
+        fileToolBar = self.addToolBar('File')
+        fileToolBar.setMovable(False)
+        fileToolBar.addAction(openAction)
+        fileToolBar.addAction(saveAction)
+
+        editToolBar = self.addToolBar('Edit')
+        editToolBar.setMovable(False)
+        editToolBar.addAction(undoAction)
+        editToolBar.addAction(redoAction)
+
+        settingsToolBar = self.addToolBar('Settings')
+        settingsToolBar.setObjectName('Settings Toolbar')
+        settingsToolBar.setMovable(False)
+        settingsToolBar.addAction(projectSettings)
+        settingsToolBar.addAction(programSettAction)
+
+        # Add icons to all actions.
+        actionsIcons = [
+            [openAction,            ':file-open'        ],
+            [saveAction,            ':file-save'        ],
+            [quitAction,            ':quit'             ],
+            [undoAction,            ':edit-undo'        ],
+            [redoAction,            ':edit-redo'        ],
+            [projectSettings,       ':edit-settings'    ],   
+            [addWidgetMenu,         ':widget-add'       ],
+            [addWidgetToolBarButton,            ':widget-add'       ],
+            [removeWidgetAction,    ':widget-remove'    ],    
+            [duplicateWidgetAction, ':widget-duplicate' ],
+            [programSettAction,     ':settings-program' ],    
+            [aboutAction,           ':help-about'       ],
+        ]
+
+        # Create the icons and set them to the actions. These icons will automatically update during
+        # a color theme change.
+        for act in actionsIcons:
+            newIcon = createIcon(act[1], self.config)
+            newIcon.setAssociatedWidget(act[0])
+            act[0].setIcon(newIcon)
+
+        # Bottom status bar
+        self.statusBar : QStatusBar = self.statusBar()
+        self.statusBar.showMessage("Ready.", 3000)
+        self.statusBarPermanent = QLabel("")
+        self.statusBar.addPermanentWidget(self.statusBarPermanent)
+
+    def createBlankTabWidget(self):
+        if hasattr(self, 'tabWidget'):
+            # If the tabWidget already exists, clear it.
+            self.tabWidget.clear()
+            # This will delete the tab widget.
+            self.tabWidget.setParent(None)
+
+        # Create a QTabWidget with tabs at the bottom.
         self.tabWidget = QTabWidget()
         self.tabWidget.setTabPosition(QTabWidget.TabPosition.South)
         self.setCentralWidget(self.tabWidget)
 
-        # Add the initial tab
-        self.addNewTab(number=0)
-
-        # Add the "Add New Tab" button as a tab
+        # Add the "Add New Tab" button as a tab.
         self.addTabButton = QLabel()
-        self.addTabButton.setText("+")
+        addTabButtonIcon = createIcon(':tab-add', self.config)
+        addTabButtonIcon.setAssociatedWidget(self.addTabButton)
+        self.addTabButton.setPixmap(addTabButtonIcon.pixmap(15,15))
 
-        index = self.tabWidget.addTab(QWidget(), "")
-        self.tabWidget.tabBar().setTabButton(index, QTabBar.ButtonPosition.RightSide, self.addTabButton)
-
+        index = self.tabWidget.addTab(QWidget(), None)
+        self.tabWidget.tabBar().setTabButton(index, QTabBar.ButtonPosition.LeftSide, self.addTabButton)
         # Ensures the "+" tab is always at the end
         self.tabWidget.tabBarClicked.connect(self.handleTabClicks)
         self.tabWidget.tabBarDoubleClicked.connect(self.renameTab)
 
-        # Create menu bar.
-        self.menu = self.menuBar()
-
-        # Add "Window" menu.
-        window_menu = self.menu.addMenu("Window")
-
-        # Add actions to the menu.
-        new_action = QAction("New Window", self)
-        new_action.triggered.connect(self.createNewSubwindow)
-        new_action.setShortcut("Ctrl+N")
-        window_menu.addAction(new_action)
-
     def contextMenuEvent(self, event: QContextMenuEvent | None) -> None:
-        super().contextMenuPolicy()
+        super().contextMenuEvent(event)
         
         index = self.tabWidget.tabBar().tabAt(self.tabWidget.tabBar().mapFromGlobal(event.globalPos()))
         if index >= 0 and index != self.tabWidget.count() - 1:
             menu = QMenu(self)
             deleteAction = menu.addAction("&Delete")
             deleteAction.triggered.connect(lambda: self.deleteTab(index))
-            menu.exec(self.tabWidget.mapToGlobal(event.pos()))
+            menu.exec(event.globalPos())
 
     def addNewTab(self, number: int):
         # Increment tab count and create a new widget for the tab.
@@ -76,7 +230,7 @@ class GUI(QMainWindow):
     def handleTabClicks(self, index):
         # If the "+" tab is clicked, add a new tab.
         if index == self.tabWidget.count()-1:
-            self.addNewTab(self.tabWidget.count()-1)
+            self.runAction('tab-add', 'undo', self.tabWidget.count()-1)
 
     def renameTab(self, index):
         if index >= 0 and index != self.tabWidget.count() - 1:
@@ -96,23 +250,148 @@ class GUI(QMainWindow):
         self.tabWidget.tabBar().setTabButton(index, QTabBar.ButtonPosition.LeftSide, None)
         self.line_edit.deleteLater()
 
-    def createNewSubwindow(self):
-        # Create a custom subwindow.
-        sub_window = Window(self.tabWidget.currentWidget())
-        text_edit = QTextEdit()
-        sub_window.setWidget(text_edit)
-        sub_window.setWindowTitle("Subwindow")
+    def openFile(self):
+        if not self.blankProgram and not self._isFileSaved():
+            reply = QMessageBox.question(self, 'Unsaved Changes',
+                                         'You have unsaved changes. Do you want to save them?',
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No |
+                                         QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Yes)
+            if reply == QMessageBox.StandardButton.Cancel:
+                return
+            if reply == QMessageBox.StandardButton.Yes:
+                self.saveFile()
 
-        # Add the subwindow to the window area (the current tab widget).
-        self.tabWidget.currentWidget().addSubWindow(sub_window)
-        sub_window.show()
+        fileName, _ = QFileDialog.getOpenFileName(self, 'Open File', '', 'Sensor Visualizer Files (*.sv)')
+        if not fileName:
+            # Dialog was closed.
+            return 
+        
+        try:
+            self.createBlankTabWidget()
 
+            with open(fileName, 'r') as inputFile:
+                inputDict: list[dict[str,any]] = json.load(inputFile)
+
+            # For every tab...
+            for tabNumber, tab in enumerate(inputDict):
+                self.addNewTab(tabNumber)
+                # ... set the tab name ...
+                self.tabWidget.setTabText(tabNumber, tab["tabName"])
+                # ... and add its windows.
+                for window in tab["windows"]:
+                    self.runAction("widget-add", None, window)
+
+            self.currentFile = fileName
+            self.statusBar.showMessage("File opened.", 3000)
+        except:
+            # Clear all if failed.
+            self.createBlankTabWidget()
+            self.addNewTab(number=0)
+            QMessageBox.critical(self, 'Error while opening', f'Could not open file.\n{traceback.format_exc()}')
+
+    def saveFile(self):
+        if not self.currentFile:
+            fileName, _ = QFileDialog.getSaveFileName(self, 'Save New File', '', 'Sensor Visualizer Files (*.sv)')
+            if fileName:
+                self.currentFile = fileName
+            else:
+                return
+
+        try:
+            with open(self.currentFile, 'w') as file:
+                json.dump(self._toDict(), file)
+
+            self.statusBar.showMessage("File saved.", 3000)
+        except:
+            QMessageBox.critical(self, 'Error while saving', f'Could not save.\n{traceback.format_exc()}')
+
+    def closeFile(self):
+        if self.blankProgram:
+            return
+
+        if not self._isFileSaved():
+            reply = QMessageBox.question(self, 'Unsaved Changes',
+                                         'You have unsaved changes. Do you want to save them?',
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No |
+                                         QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Yes)
+            if reply == QMessageBox.StandardButton.Cancel:
+                return
+            if reply == QMessageBox.StandardButton.Yes:
+                if not self.saveFile():
+                    return
+        
+        self.currentFile = None
+        self.blankProgram = True
+        UndoRedo.clear()
+        
+        # Restart the interface.
+        self.createBlankTabWidget()
+        self.addNewTab(number=0)
+        self.statusBar.showMessage("File closed.", 3000)
+
+    def _isFileSaved(self) -> bool:
+        currentFile = json.dumps(self._toDict())
+        with open(self.currentFile, 'r') as saveFile:
+            return currentFile == saveFile.read()
+
+    def _toDict(self) -> dict[str, any]:
+        saveDict: list[dict[str, any]] = []
+        for i in range(self.tabWidget.count() - 1):
+            windowArea: WindowArea = self.tabWidget.widget(i)
+            saveDict.append({
+                "tabName"   :   self.tabWidget.tabText(i),
+                "windows"   :   [window.toDict() for window in windowArea.subWindowList()]
+            })
+        return saveDict
+
+    def runAction(self, action: str, actionStack: str, *args):
+        self.blankProgram = False
+
+        if action == 'change-program-settings':
+            settingsWindow = SettingsWindow(self.config, self)
+            settingsWindow.exec()
+        elif action.startswith("widget-add"):
+            # Create a new window that will contain the widget.
+            window = Window(self.tabWidget.currentWidget())
+
+            if len(args) >= 1 and type(args[0]) is dict:
+                # A dictionary is being passed to initialize the widget.
+                window.fromDict(args[0])
+            else:
+                # Create a "default" widget.
+                widgetType: str = action[len("widget-add-"):]
+                widgetType: DataWidget = strToWidget(widgetType)
+                widget = widgetType(parent=window)
+                window.setWidget(widget)
+                window.setWindowTitle(widget.parentWindowName)
+
+            # Add the subwindow to the window area (the current tab widget).
+            self.tabWidget.currentWidget().addSubWindow(window)
+            window.show()
+        elif action == 'tab-add':
+            self.addNewTab(args[0])
+        else:
+            print(f"Action {action} not implemented on runAction in GUI.py")
+
+# This line gets positioned on the tab name when it's double clicked to substitute its value.
 class CurstomLineEdit(QLineEdit):
     def __init__(self, text):
         super().__init__(text)
         self.originalText = text
         self.selectAll()
 
+        self.textChanged.connect(self.setWidthToContent)
+        self.setMinimumWidth(25)
+
+    def setWidthToContent(self):
+        font_metrics = QFontMetrics(self.font())
+        text_width = font_metrics.horizontalAdvance(self.text()) + 20
+        self.setFixedWidth(text_width)
+
+    def resizeEvent(self, a0: QResizeEvent | None) -> None:
+        super().resizeEvent(a0)
+        self.setWidthToContent()
+    
     def focusOutEvent(self, a0: QFocusEvent | None) -> None:
         super().focusOutEvent(a0)
         self.editingFinished.emit()

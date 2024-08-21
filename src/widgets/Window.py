@@ -1,7 +1,9 @@
 from PyQt6.QtWidgets import QMdiSubWindow
-from PyQt6.QtCore import Qt, QRect, QEvent, QLine, QSize
-from PyQt6.QtGui import QFocusEvent, QResizeEvent, QMouseEvent, QMoveEvent
+from PyQt6.QtCore import Qt, QRect, QLine, QSize, QEvent
+from PyQt6.QtGui import QContextMenuEvent, QResizeEvent, QMouseEvent, QMoveEvent, QEnterEvent
 from widgets.WindowArea import WindowArea
+from widgets.DataWidget import DataWidget
+from tools.WidgetLocator import strToWidget
 
 class Window(QMdiSubWindow):
     def __init__(self, mdiArea: WindowArea):
@@ -23,14 +25,21 @@ class Window(QMdiSubWindow):
         self.onNotHoverFlags = self.windowFlags() | Qt.WindowType.FramelessWindowHint
         self.setWindowFlags(self.onNotHoverFlags)
 
-    def enterEvent(self, event):
+    def contextMenuEvent(self, event: QContextMenuEvent | None) -> None:
+        # It's giving errors on right clicking the top pane. This fixes it :)
+        pass
+
+    def enterEvent(self, event: QEnterEvent | None) -> None:
+        super().enterEvent(event)
         if self.closing or (self.windowState() & Qt.WindowState.WindowMinimized): return
 
         # Show the title bar when the mouse enters the subwindow
         self.setWindowFlags(self.onHoverFlags)
 
-    def leaveEvent(self, event):
-        if self.closing or (self.windowState() & Qt.WindowState.WindowMinimized): return
+    def leaveEvent(self, event: QEvent | None) -> None:
+        super().leaveEvent(event)
+        # If the window is being closed or is minimized, don't change the window top bar.
+        if self.closing or (self.windowState() & Qt.WindowState.WindowMinimized) : return
 
         # Hide the title bar when the mouse leaves the subwindow
         self.setWindowFlags(self.onNotHoverFlags)
@@ -319,3 +328,34 @@ class Window(QMdiSubWindow):
         self.mdiArea.setHintLines(foundHints)
 
         return currentRect
+    
+    # Convert the window properties and its content to a dictionary.
+    def toDict(self) -> dict[str, any]:
+        rect = self.geometry()
+        return {
+            "x"         : rect.x(),
+            "y"         : rect.y(),
+            "w"         : rect.width(),
+            "h"         : rect.height(),
+            "type"      : type(self.widget()).__name__,
+            "args"      : self.widget().toDict() if type(self.widget()) is DataWidget else None
+        }
+
+    # Initialize the window properties and its content from a dictionary.
+    def fromDict(self, startArgs: dict[str, any]):
+        rect = QRect(   
+            startArgs["x"],
+            startArgs["y"],
+            startArgs["w"],
+            startArgs["h"]
+        )
+        self.setGeometry(rect)
+
+        if startArgs["type"] is None:
+            return
+        
+        # This "converts" from str to type, so then it can be instantiated.
+        widgetType: DataWidget = strToWidget(startArgs["type"])
+        widget = widgetType(parent=self, startArgs=startArgs["args"])
+        self.setWidget(widget)
+        self.setWindowTitle(widget.parentWindowName)
