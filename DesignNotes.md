@@ -67,10 +67,13 @@ A source is a class from where the different protocols will inherit. Basically, 
   This preprocessor must be a simple program that receives as arguments an input string and shall return over console or stdout the processed field. A field is processed when it follows the following format:
 
     ```
-    {(...),”name”:”value”,(...)}
+    {(...),name:value,(...)}
     ```
 	
-    By this format rule, the name and value fields must be in valid `string` format; that is, special characters are to be stored as `"\x"`, and \ must be stored as `\\`, as usual string syntax. The structure is the same as dictionaries in Python.
+    The structure is very similar to dictionaries in Python but with some key differences:
+
+    - `name` must be a string, but without enclosing quotation marks.
+    - `value` can be an integer, float or string. In the case of a string, you can either input it with '', "" or without them. Especial characters can also be written.
 
 A source has the following functions:
 
@@ -80,7 +83,7 @@ A source has the following functions:
 
 - `getDataFields() -> Dict[str,str] | None`
   
-  Returns a dictionary with the fields and its values. As it is a dictionary, no repeated values can appear so the represented item will always be the last one received. If a preprocessor is selected, this function will call it to generate the formatted string that will be then parsed as a dictionary.
+  Returns a dictionary with the fields and its values. As it is a dictionary, no repeated values can appear so if the same key were to appear more than once, the values would append to a list associated to the key. If a preprocessor is selected, this function will be called upon to generate the formatted string that will be then parsed as a dictionary.
 
 From the “New source” window:
 1.	When selecting a source, first you’ll specify the type of source:

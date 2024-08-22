@@ -11,7 +11,7 @@
 # This project is licensed under the MIT License - see the LICENSE file for details.
 # **************************************************************************************************
 
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtWidgets import QWidget, QSizePolicy
 from PyQt6.QtGui import QPixmap, QImage, QPainter, QIcon
 from PyQt6.QtSvg import QSvgRenderer
 from PyQt6.QtCore import QByteArray, QBuffer, QIODevice, QFile, Qt
@@ -27,8 +27,10 @@ class TrackableIcon(QIcon):
         self.__class__._instances.append(self)
         self.filePath = filePath
 
-    def setAssociatedWidget(self, associatedWidget: QWidget):
+    def setAssociatedWidget(self, associatedWidget: QWidget, width: int|None = None, height: int|None = None):
         self.associatedWidget: QWidget = associatedWidget
+        self.width = width
+        self.height = height
 
         # Remove the previously associated widget with this icon.
         instanceToDelete = None
@@ -43,6 +45,14 @@ class TrackableIcon(QIcon):
         if instanceToDelete is not None and instanceToDelete is not self:
             self.__class__._instances.remove(instanceToDelete)
 
+        # Set the icon on the associated widget.
+        if hasattr(self.associatedWidget, 'setIcon'):
+            self.associatedWidget.setIcon(self)
+        elif hasattr(self.associatedWidget, 'setPixmap'):
+            if width is None or height is None:
+                raise Exception("Set the width and height on a pixmap associated widget.")
+            self.associatedWidget.setPixmap(self.pixmap(width, height))
+
     def recolor(self, color):
         if not hasattr(self, 'associatedWidget') or self.associatedWidget is None:
             return
@@ -55,10 +65,7 @@ class TrackableIcon(QIcon):
             elif hasattr(self.associatedWidget, 'setPixmap'):
                 if self.associatedWidget.pixmap() is None:
                     return
-                
-                width = self.associatedWidget.pixmap().width()
-                height = self.associatedWidget.pixmap().height()
-                self.associatedWidget.setPixmap(self.pixmap(width, height))
+                self.associatedWidget.setPixmap(self.pixmap(self.width, self.height))
         except:
             # If the icon were to be deleted, it would throw a "wrapped C/C++ object of type x has 
             # been deleted", so remove it in that case.
@@ -71,7 +78,7 @@ class TrackableIcon(QIcon):
         
         match theme.colorTheme:
             case 'light':
-                color = "#444"
+                color = "#4D5157"
             case 'dark':
                 color = "#FFF"
 

@@ -98,13 +98,13 @@ class SettingsWindow(QDialog):
             self.darkTheme.setChecked(False)
             self.lightTheme.setChecked(True)
 
-        self.applyTheme()
+        SettingsWindow.applyTheme(self.config)
 
     def applyChanges(self):
         for field in fields(self.config):
             setattr(self.originalConfig, field.name, getattr(self.config, field.name))
         
-        self.applyTheme()
+        SettingsWindow.applyTheme(self.config)
 
         # Close the window.
         self.accept()
@@ -113,11 +113,12 @@ class SettingsWindow(QDialog):
         for field in fields(self.config):
             setattr(self.config, field.name, getattr(self.originalConfig, field.name))
 
-        self.applyTheme()
+        SettingsWindow.applyTheme(self.config)
 
         # Close the window.
         self.close()
 
-    def applyTheme(self):
-        qdarktheme.setup_theme(self.config.colorTheme)
-        TrackableIcon.recolorAllIcons(self.config)
+    @staticmethod
+    def applyTheme(config: ProgramConfig):
+        qdarktheme.setup_theme(config.colorTheme)
+        TrackableIcon.recolorAllIcons(config)

@@ -2,7 +2,9 @@ from PyQt6.QtWidgets import (
     QMainWindow, QStatusBar, QToolButton, QTabWidget, QLabel, QWidget, QTabBar, QMenu, QLineEdit, 
     QMessageBox, QFileDialog
 )
-from PyQt6.QtGui import QContextMenuEvent, QFocusEvent, QKeyEvent, QFontMetrics, QResizeEvent
+from PyQt6.QtGui import (
+    QContextMenuEvent, QFocusEvent, QKeyEvent, QFontMetrics, QResizeEvent, QPalette
+)
 from PyQt6.QtCore import Qt
 
 from widgets.WindowArea import WindowArea
@@ -12,6 +14,7 @@ from tools.Icons import createIcon
 from tools.WidgetLocator import strToWidget
 from SettingsWindow import ProgramConfig, SettingsWindow
 
+from dataclasses import asdict
 import json
 
 from typing import TYPE_CHECKING
@@ -32,6 +35,11 @@ class GUI(QMainWindow):
         self.currentFile: str|None = None
         # If no action has been done, then it's a blank program.
         self.blankProgram: bool = True
+
+        # Check if the color is closer to black (dark mode) or white (light mode)
+        color = self.palette().color(QPalette.ColorRole.Window)
+        brightness = (color.red() * 0.299 + color.green() * 0.587 + color.blue() * 0.114) / 255
+        self.config.colorTheme = "dark" if  brightness < 0.5 else "light"
 
         # Needed to trigger the focus out event on the QLineEdits inside the tabbed pane.
         self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
@@ -167,9 +175,7 @@ class GUI(QMainWindow):
         # Create the icons and set them to the actions. These icons will automatically update during
         # a color theme change.
         for act in actionsIcons:
-            newIcon = createIcon(act[1], self.config)
-            newIcon.setAssociatedWidget(act[0])
-            act[0].setIcon(newIcon)
+            createIcon(act[1], self.config).setAssociatedWidget(act[0])
 
         # Bottom status bar
         self.statusBar : QStatusBar = self.statusBar()
@@ -192,8 +198,7 @@ class GUI(QMainWindow):
         # Add the "Add New Tab" button as a tab.
         self.addTabButton = QLabel()
         addTabButtonIcon = createIcon(':tab-add', self.config)
-        addTabButtonIcon.setAssociatedWidget(self.addTabButton)
-        self.addTabButton.setPixmap(addTabButtonIcon.pixmap(15,15))
+        addTabButtonIcon.setAssociatedWidget(self.addTabButton, 15, 15)
 
         index = self.tabWidget.addTab(QWidget(), None)
         self.tabWidget.tabBar().setTabButton(index, QTabBar.ButtonPosition.LeftSide, self.addTabButton)
@@ -341,6 +346,8 @@ class GUI(QMainWindow):
                 self.runAction("widget-add", None, window)
 
         self.tabWidget.setCurrentIndex(inputDict.get("selectedTab", 0))
+        self.config = ProgramConfig(**inputDict.get("config", {}))
+        SettingsWindow.applyTheme(self.config)
 
     def _toDict(self) -> dict[str, any]:
         tabList: list[dict[str, any]] = []
@@ -353,6 +360,7 @@ class GUI(QMainWindow):
         
         return {
             "selectedTab"   : self.tabWidget.currentIndex(),
+            "config"        : asdict(self.config),
             "tabs"          : tabList
         }
 
