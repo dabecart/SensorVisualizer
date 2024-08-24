@@ -40,7 +40,7 @@ To add a widget:
 
 A variable has the following fields:
 
-- `name : str`. The variable name.
+- `name : str`. The variable name. A variable cannot be repeated if it came from the source. It can be repeated if it came from different sources.
 - `type : type`. This type should have a constructor to convert from `string` to that `type`.
 - `value`. The last received value.
 - `lastValues : List[]`. The last received values. It's a FIFO structure. Must contain `value` at position 0.
@@ -73,7 +73,14 @@ A source is a class from where the different protocols will inherit. Basically, 
     The structure is very similar to dictionaries in Python but with some key differences:
 
     - `name` must be a string, but without enclosing quotation marks.
-    - `value` can be an integer, float or string. In the case of a string, you can either input it with '', "" or without them. Especial characters can also be written.
+    - `value` can be an integer, float or string.
+      - In the case of a string, you can either input it with '', "" or without them. 
+      - **Always** use UTF-8 characters.
+      - Especial characters can also be directly inserted into the string (`\n`, `\r`, `\t`, `\b` and `\f`).
+      - To send binary data, encode it in base 64 (UTF-8 character set) and send it adding a `b` before the message. In this case, is necessary to use quotation marks ("" or ''). Eg: if `hello` is to be sent in base 64, that is `aGVsbG8=`, so send it as: 
+        ```
+        {(...),greeting:b"aGVsbG8=",(...)}
+        ```
 
 A source has the following functions:
 
