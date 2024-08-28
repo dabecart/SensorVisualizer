@@ -1,7 +1,11 @@
+from collections import deque
+
+_MAX_UNDO_REDO_STEPS = 100
+
 class UndoRedo:
     gui = None
-    undoStack = []
-    redoStack = []
+    undoStack = deque(maxlen=_MAX_UNDO_REDO_STEPS)
+    redoStack = deque(maxlen=_MAX_UNDO_REDO_STEPS)
     cmdCalledFromHere: bool = False
 
     @staticmethod

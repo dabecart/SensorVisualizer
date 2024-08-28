@@ -1,10 +1,14 @@
-from PyQt6.QtWidgets import QMenu, QVBoxLayout, QHBoxLayout, QFormLayout, QDialog, QPushButton
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QMenu, QVBoxLayout, QHBoxLayout, QDialog, QPushButton, QComboBox, QLabel
+)
+from PyQt6.QtCore import Qt, QSize
 
 from widgets.DataWidget import DataWidget
 from pyqtgraph import PlotWidget as QPlotter
 
 from dataclasses import dataclass, asdict
+
+from tools.Icons import createIcon
 
 class PlotWidget(DataWidget):
     def __init__(self, parent=None, startArgs:dict[str, any] | None = None):
@@ -29,8 +33,11 @@ class PlotWidget(DataWidget):
 
     # Add the necessary items to the context menu.
     def addConfigToContextMenu(self, menu: QMenu):
-        plotSettAction = menu.addAction("Plot settings")
-        plotSettAction.triggered.connect(lambda: PlotWidgetConfigDialog(self).exec())
+        changeSignalsAction = menu.addAction("&Data sources")
+        changeSignalsAction.triggered.connect(lambda: PlotWidgetDataSources(self).exec())
+
+        plotSettAction = menu.addAction("&Plot settings")
+        plotSettAction.triggered.connect(lambda: print("TODO!"))
 
 @dataclass
 class Plotter(QPlotter):
@@ -101,12 +108,12 @@ class Plotter(QPlotter):
             y = startArgs.get("_logModeY", False)
         )
 
-class PlotWidgetConfigDialog(QDialog):
+class PlotWidgetDataSources(QDialog):
     def __init__(self, parent: PlotWidget = None):
         super().__init__(parent)
         self.parent = parent
 
-        self.setWindowTitle(f'Settings for {self.parent.parentWindowName}')
+        self.setWindowTitle(f'Data sources for {self.parent.parentWindowName}')
         self.resize(300, 200)
 
         parentGeo = self.parent.geometry()
@@ -115,10 +122,48 @@ class PlotWidgetConfigDialog(QDialog):
             parentGeo.center().y() + parentGeo.height()
         )
 
+        # Main layout.
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        # Add Apply and Cancel buttons
+        # Top bar selection of the data source.
+        sourceComboLabel = QLabel("Data source:")
+        sourceComboLabel.setContentsMargins(0,0,10,0)
+
+        self.sourceCombo = QComboBox()
+        self.sourceCombo.setStatusTip("Select the source to modify its properties.")
+        self.sourceCombo.setPlaceholderText("Add a new source first...")
+        self.sourceCombo.setFixedHeight(30)
+        self.sourceCombo.setMinimumContentsLength(25)
+        self.sourceCombo.setEnabled(False)
+        self.sourceCombo.currentTextChanged.connect(
+            lambda: self.runAction('datasource-change', 'undo', 
+                    (self.sourceCombo.currentText()))
+        )
+
+        self.addButton = QPushButton(createIcon(':datasource-add', "green"), "Add source")
+        self.addButton.setStatusTip('Add a new data source to the widget.')
+        self.addButton.clicked.connect(lambda: self.runAction('datasource-new', 'undo'))
+        self.addButton.setFixedWidth(120)
+        self.addButton.setFixedHeight(30)
+        self.addButton.setIconSize(QSize(20,20))
+
+        self.removeButton = QPushButton(createIcon(':datasource-remove', "red"), "Remove source")
+        self.removeButton.setStatusTip('Remove the selected data source from the widget.')
+        self.removeButton.clicked.connect(lambda: self.runAction('datasource-remove', 'undo'))
+        self.removeButton.setFixedWidth(120)
+        self.removeButton.setFixedHeight(30)
+        self.removeButton.setIconSize(QSize(20,20))
+
+        addRemoveLayout = QHBoxLayout()
+        addRemoveLayout.addWidget(sourceComboLabel)
+        addRemoveLayout.addWidget(self.sourceCombo)
+        addRemoveLayout.addWidget(self.addButton)
+        addRemoveLayout.addWidget(self.removeButton)
+        addRemoveLayout.addStretch()
+        layout.addLayout(addRemoveLayout)
+
+        # Add Apply and Cancel buttons.
         buttonsLayout = QHBoxLayout()
         self.cancelButton = QPushButton('Cancel')
         self.cancelButton.clicked.connect(self.discardChanges)
@@ -132,8 +177,18 @@ class PlotWidgetConfigDialog(QDialog):
         layout.addStretch()
         layout.addLayout(buttonsLayout)
 
+    def runAction(self, action: str, actionStack: str | None, *args):
+        if action == "datasource-new":
+            pass
+        elif action == "datasource-remove":
+            pass
+        elif action == "datasource-change":
+            pass
+        else:
+            print(f'Action {action} is not defined on PlotWidgetDataSources')
+
     def applyChanges(self):
-        pass
+        self.accept()
 
     def discardChanges(self):
-        pass
+        self.close()

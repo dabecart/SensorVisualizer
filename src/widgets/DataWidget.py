@@ -59,16 +59,6 @@ class DataWidget(QWidget, ABC, metaclass=QWidgetABCMeta):
         super().contextMenuEvent(event)
         
         menu = QMenu(self)
-
-        changeSignalsAction = menu.addAction("&Change signals")
-        changeSignalsAction.triggered.connect(self.changeSignals)
-
-        menu.addSeparator()
-
         # Add the custom items to the context menu.
         self.addConfigToContextMenu(menu)
-
         menu.exec(event.globalPos())
-
-    def changeSignals(self):
-        pass

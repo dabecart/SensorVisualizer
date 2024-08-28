@@ -3,9 +3,9 @@ from PyQt6.QtWidgets import (
     QMessageBox, QFileDialog
 )
 from PyQt6.QtGui import (
-    QContextMenuEvent, QFocusEvent, QKeyEvent, QFontMetrics, QResizeEvent, QPalette
+    QCloseEvent, QContextMenuEvent, QFocusEvent, QKeyEvent, QFontMetrics, QResizeEvent, QPalette
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSlot
 
 from widgets.WindowArea import WindowArea
 from widgets.Window import Window
@@ -13,6 +13,8 @@ from tools.UndoRedo import UndoRedo
 from tools.Icons import createIcon
 from tools.WidgetLocator import strToWidget
 from SettingsWindow import ProgramConfig, SettingsWindow
+from datastreams.DataListener import DataListener
+from datastreams.DataVariable import DataVariable
 
 from dataclasses import asdict
 import json
@@ -182,6 +184,20 @@ class GUI(QMainWindow):
         self.statusBar.showMessage("Ready.", 3000)
         self.statusBarPermanent = QLabel("")
         self.statusBar.addPermanentWidget(self.statusBarPermanent)
+
+        # Initialize the DataListener thread.
+        self.dataListener = DataListener()
+        self.dataListener.updateHooks.connect(self.runWidgetHooks)
+        self.dataListener.start()
+
+    @pyqtSlot(list)
+    def runWidgetHooks(self, updateVbeList: list[tuple[DataVariable, any]]):
+        for vbe, value in updateVbeList:
+            vbe.value = value
+
+    def closeEvent(self, a0: QCloseEvent | None) -> None:
+        self.dataListener.stop()
+        return super().closeEvent(a0)
 
     def createBlankTabWidget(self):
         if hasattr(self, 'tabWidget'):

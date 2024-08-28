@@ -1,5 +1,8 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
+    <file alias="datasource-add">datasource-add.svg</file>
+    <file alias="datasource-remove">datasource-remove.svg</file>
+
     <file alias="file-new">file-new.svg</file>
     <file alias="file-open">file-open.svg</file>
     <file alias="file-save">file-save.svg</file>
