@@ -9,6 +9,7 @@ from pyqtgraph import PlotWidget as QPlotter
 from dataclasses import dataclass, asdict
 
 from tools.Icons import createIcon
+from datastreams.DataVariable import DataVariableSelector
 
 class PlotWidget(DataWidget):
     def __init__(self, parent=None, startArgs:dict[str, any] | None = None):
@@ -114,7 +115,6 @@ class PlotWidgetDataSources(QDialog):
         self.parent = parent
 
         self.setWindowTitle(f'Data sources for {self.parent.parentWindowName}')
-        self.resize(300, 200)
 
         parentGeo = self.parent.geometry()
         self.move(
@@ -134,34 +134,35 @@ class PlotWidgetDataSources(QDialog):
         self.sourceCombo.setStatusTip("Select the source to modify its properties.")
         self.sourceCombo.setPlaceholderText("Add a new source first...")
         self.sourceCombo.setFixedHeight(30)
-        self.sourceCombo.setMinimumContentsLength(25)
+        self.sourceCombo.setMinimumContentsLength(50)
         self.sourceCombo.setEnabled(False)
         self.sourceCombo.currentTextChanged.connect(
             lambda: self.runAction('datasource-change', 'undo', 
                     (self.sourceCombo.currentText()))
         )
 
-        self.addButton = QPushButton(createIcon(':datasource-add', "green"), "Add source")
+        self.addButton = QPushButton(createIcon(':datasource-add', "green"), "Add new source")
         self.addButton.setStatusTip('Add a new data source to the widget.')
         self.addButton.clicked.connect(lambda: self.runAction('datasource-new', 'undo'))
-        self.addButton.setFixedWidth(120)
+        self.addButton.setFixedWidth(150)
         self.addButton.setFixedHeight(30)
         self.addButton.setIconSize(QSize(20,20))
 
         self.removeButton = QPushButton(createIcon(':datasource-remove', "red"), "Remove source")
         self.removeButton.setStatusTip('Remove the selected data source from the widget.')
         self.removeButton.clicked.connect(lambda: self.runAction('datasource-remove', 'undo'))
-        self.removeButton.setFixedWidth(120)
+        self.removeButton.setFixedWidth(150)
         self.removeButton.setFixedHeight(30)
         self.removeButton.setIconSize(QSize(20,20))
 
-        addRemoveLayout = QHBoxLayout()
-        addRemoveLayout.addWidget(sourceComboLabel)
-        addRemoveLayout.addWidget(self.sourceCombo)
-        addRemoveLayout.addWidget(self.addButton)
-        addRemoveLayout.addWidget(self.removeButton)
-        addRemoveLayout.addStretch()
-        layout.addLayout(addRemoveLayout)
+        dataSourceLayout = QHBoxLayout()
+        dataSourceLayout.addWidget(sourceComboLabel)
+        dataSourceLayout.addWidget(self.sourceCombo)
+        dataSourceLayout.addStretch()
+        dataSourceLayout.addWidget(self.addButton)
+        dataSourceLayout.addWidget(self.removeButton)
+        dataSourceLayout.addStretch()
+        layout.addLayout(dataSourceLayout)
 
         # Add Apply and Cancel buttons.
         buttonsLayout = QHBoxLayout()
@@ -179,7 +180,7 @@ class PlotWidgetDataSources(QDialog):
 
     def runAction(self, action: str, actionStack: str | None, *args):
         if action == "datasource-new":
-            pass
+            DataVariableSelector(self).exec()
         elif action == "datasource-remove":
             pass
         elif action == "datasource-change":

@@ -12,6 +12,13 @@ import re
 from collections import defaultdict
 from base64 import b64decode
 
+from PyQt6.QtWidgets import (
+    QDialog, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton, QComboBox, QCheckBox, 
+    QFormLayout, QFileDialog
+)
+from widgets.LabeledLineEdit import LabeledLineEdit
+from tools.Icons import createIcon
+
 @dataclass
 class DataStream(ABC):
     # Dictionary with all the DataStream instances.
@@ -21,7 +28,7 @@ class DataStream(ABC):
     def nameAvailable(name: str) -> bool:
         return name not in DataStream._instances
 
-    proprocessor   : str|None  = None
+    preprocessor   : str|None  = None
     name           : str|None  = None
 
     def __post_init__(self):
@@ -53,8 +60,8 @@ class DataStream(ABC):
             return None
 
         # Call the preprocessor if any.
-        if self.proprocessor is not None:
-            processOutput = self._executeCommand(self.proprocessor + ' "' + input + '"', None)
+        if self.preprocessor is not None:
+            processOutput = self._executeCommand(self.preprocessor + ' "' + input + '"', None)
             input = processOutput.get("output", input)
 
         # Final filter: input must be an UTF-8 string by this point.
@@ -159,3 +166,84 @@ class DataStream(ABC):
                     resultDict[key] = resultDict[key][0]
 
             return dict(resultDict)
+        
+class DataStreamSelector(QDialog):
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
+
+        self.setWindowTitle("Create a new data stream")
+        layout = QVBoxLayout(self)
+
+        streamTypeGroupBox = QGroupBox("Stream type")
+        streamGroupBoxLayout = QHBoxLayout(streamTypeGroupBox)
+        self.typeComboBox = QComboBox()
+        self.typeComboBox.setStatusTip("Select the data stream type.")
+        self.typeComboBox.setFixedHeight(30)
+        self.typeComboBox.setMinimumContentsLength(50)
+
+        streamGroupBoxLayout.addWidget(self.typeComboBox)
+
+        streamConfigGroupBox = QGroupBox("Stream configuration")
+        streamConfigGroupBoxLayout = QHBoxLayout(streamConfigGroupBox)
+
+        preprocessorGroupBox = QGroupBox("Preprocessor")
+        preprocessorGroupBoxLayout = QFormLayout(preprocessorGroupBox)
+        self.preprocessorCheckbox = QCheckBox()
+        self.preprocessorCheckbox.setChecked(False)
+        
+        preprocessorLayout = QHBoxLayout()
+        self.preprocessorFile = LabeledLineEdit()
+        self.preprocessorFile.lineEdit.textChanged.connect(self.validatePreprocessor)
+        
+        self.preprocessorOpenFileButton = QPushButton()
+        self.preprocessorOpenFileButton.setFixedSize(24, 24)
+        openFileIcon = createIcon(':file-open', self.parent)
+        openFileIcon.setAssociatedWidget(self.preprocessorOpenFileButton)
+        self.preprocessorOpenFileButton.clicked.connect(self.openPreprocessorDialog)
+        layout.addWidget(self.preprocessorOpenFileButton)
+        
+        preprocessorLayout.addWidget(self.preprocessorFile)
+        preprocessorLayout.addWidget(self.preprocessorOpenFileButton)
+
+        preprocessorGroupBoxLayout.addRow("Use preprocessor: ", self.preprocessorCheckbox)
+        preprocessorGroupBoxLayout.addRow("Preprocessor file: ", preprocessorLayout)
+
+        # Add Create and Cancel buttons.
+        buttonsLayout = QHBoxLayout()
+        self.cancelButton = QPushButton('Cancel')
+        self.cancelButton.clicked.connect(self.discardVariable)
+        self.createButton = QPushButton('Create')
+        self.createButton.clicked.connect(self.createVariable)
+
+        buttonsLayout.addStretch()
+        buttonsLayout.addWidget(self.cancelButton)
+        buttonsLayout.addWidget(self.createButton)
+
+        layout.addWidget(streamTypeGroupBox)
+        layout.addWidget(streamConfigGroupBox)
+        layout.addStretch()
+        layout.addLayout(buttonsLayout)
+
+    def openPreprocessorDialog(self):
+        filepath, _ = QFileDialog.getOpenFileName(self, 'Select preprocessor', '', 'Python Files (*.py);;All Files (*)')
+        if filepath:
+            self.preprocessorFile.setText(filepath)
+    
+    def validatePreprocessor(self):
+        filepath = self.preprocessorFile.text()
+        if not os.path.isfile(filepath):
+            self.preprocessorFile.setError("This file does not exist.")
+        elif not filepath.endswith('.py'):
+            self.preprocessorFile.setError("This file is not a Python file.")
+        else:
+            self.preprocessorFile.clearError()
+    
+    def discardVariable(self):
+        self.close()
+
+    def createVariable(self):
+        self.accept()
+
+    def runAction(self, action: str, actionStack: str | None, *args):
+            print(f'Action {action} is not defined on DataStreamSelector')
+
