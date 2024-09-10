@@ -10,7 +10,7 @@ from PyQt6.QtCore import Qt, pyqtSlot
 from widgets.WindowArea import WindowArea
 from widgets.Window import Window
 from tools.UndoRedo import UndoRedo
-from tools.Icons import createIcon
+from tools.Icons import createThemedIcon, TrackableIcon
 from tools.WidgetLocator import strToWidget
 from SettingsWindow import ProgramConfig, SettingsWindow
 from datastreams.DataListener import DataListener
@@ -42,6 +42,8 @@ class GUI(QMainWindow):
         color = self.palette().color(QPalette.ColorRole.Window)
         brightness = (color.red() * 0.299 + color.green() * 0.587 + color.blue() * 0.114) / 255
         self.config.colorTheme = "dark" if  brightness < 0.5 else "light"
+
+        TrackableIcon.setThemeReference(self.config)
 
         # Needed to trigger the focus out event on the QLineEdits inside the tabbed pane.
         self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
@@ -177,7 +179,7 @@ class GUI(QMainWindow):
         # Create the icons and set them to the actions. These icons will automatically update during
         # a color theme change.
         for act in actionsIcons:
-            createIcon(act[1], self.config).setAssociatedWidget(act[0])
+            createThemedIcon(act[1]).setAssociatedWidget(act[0])
 
         # Bottom status bar
         self.statusBar : QStatusBar = self.statusBar()
@@ -213,7 +215,7 @@ class GUI(QMainWindow):
 
         # Add the "Add New Tab" button as a tab.
         self.addTabButton = QLabel()
-        addTabButtonIcon = createIcon(':tab-add', self.config)
+        addTabButtonIcon = createThemedIcon(':tab-add')
         addTabButtonIcon.setAssociatedWidget(self.addTabButton, 15, 15)
 
         index = self.tabWidget.addTab(QWidget(), None)
@@ -290,9 +292,15 @@ class GUI(QMainWindow):
         try:
             self.createBlankTabWidget()
 
+            # Quick fix so that the "Open" icon changes with the theme upon opening a file with 
+            # different color theme as the current one.
+            TrackableIcon._disableIconDeletion = True
+
             with open(fileName, 'r') as inputFile:
                 inputDict: dict[str,any] = json.load(inputFile)
                 self._fromDict(inputDict)
+
+            TrackableIcon._disableIconDeletion = False
 
             self.currentFile = fileName
             self.statusBar.showMessage("File opened.", 3000)
@@ -362,7 +370,9 @@ class GUI(QMainWindow):
                 self.runAction("widget-add", None, window)
 
         self.tabWidget.setCurrentIndex(inputDict.get("selectedTab", 0))
-        self.config = ProgramConfig(**inputDict.get("config", {}))
+
+        for configField, configFieldValue in inputDict.get("config", {}).items():
+            setattr(self.config, configField, configFieldValue)
         SettingsWindow.applyTheme(self.config)
 
     def _toDict(self) -> dict[str, any]:

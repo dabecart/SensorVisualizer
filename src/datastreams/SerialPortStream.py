@@ -1,9 +1,15 @@
-from DataStream import DataStream
+import serial.tools
+import serial.tools.list_ports
 from enum import Enum
 import serial
-from dataclasses import dataclass, asdict
-from datastreams.CRC import CRC
+from dataclasses import dataclass, field
 from time import perf_counter
+
+from datastreams.DataStream import DataStream
+from datastreams.CRC import CRC
+from PyQt6.QtWidgets import (
+    QVBoxLayout
+)
 
 # Configuration fields for the Serial library.
 @dataclass
@@ -98,9 +104,9 @@ class EOTTimeout:
 
 @dataclass
 class SerialPortStreamConfig():
-    hwConfig:   HWConfig        = HWConfig()
+    hwConfig:   HWConfig        = field(default_factory=lambda: HWConfig())
     eot:        EOT             = EOT.TIMEOUT
-    eotArgs:    dict[str,any]   = {}
+    eotArgs:    dict[str,any]   = field(default_factory=lambda: {})
 
 class SerialPortStream(DataStream):
     _inputBuffer: bytearray = bytearray()
@@ -147,7 +153,9 @@ class SerialPortStream(DataStream):
                 raise Exception(f'Wrong EOT type in the serial port "{self._config.hwConfig.port}".')
         
     def __init__(self, config: SerialPortStreamConfig) -> None:
-        self._config = config
+        self._config: SerialPortStreamConfig = config
+        # While configuring it, this will be None.
+        self._serial: serial.Serial|None = None
 
         # Definitions of variables needed for different EOT modes.
         if config.eot is EOT.HEADER or config.eot is EOT.HEADER_CRC:
@@ -158,11 +166,9 @@ class SerialPortStream(DataStream):
             self.lastTimeHere:      float|None  = None
             self.autoDeltaTime:     float       = self._config.hwConfig.packetTime()
 
-        self._serial = serial.Serial(**config.hwConfig)
-        self._serial.open()
-
     def __del__(self):
-        self._serial.close()
+        if type(self._serial) is serial.Serial:
+            self._serial.close()
 
     def _trimTillEOTBytes(self, input: bytes, eotBytes: bytes) -> bytearray|None:
         # This method takes into account if input is empty (returns -1) or if eotBytes is empty 
@@ -306,3 +312,15 @@ class SerialPortStream(DataStream):
                 self.lastTimeHere = perf_counter()
         
         return None
+
+    @classmethod
+    def listAllPorts(cls):
+        serialPorts = serial.tools.list_ports.comports()
+        return ["{}: {} [{}]".format(port, desc, hwid) for port, desc, hwid in sorted(serialPorts)]
+    
+    def start(self):
+        self._serial = serial.Serial(**self._config.hwConfig.__dict__)
+        self._serial.open()
+
+    def addConfigurationFields(self, contentLayout: QVBoxLayout):
+        pass

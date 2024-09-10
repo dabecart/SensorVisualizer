@@ -19,7 +19,7 @@ To create the resource pack (*taken from [here](https://stackoverflow.com/questi
 
 - ...on Windows:
     ```
-    powershell -Command "(pyside6-rcc res/res.qrc) | ForEach-Object { $_ -replace 'PySide6', 'PyQt6' }" > src/ResourcePacket.py
+    powershell -Command "(pyside6-rcc res/res.qrc) | ForEach-Object { `$_ -replace `'PySide6`', `'PyQt6`' } | Out-File -Encoding UTF8 src/ResourcePacket.py"
     ```
 
 And import as a module into the Python file.

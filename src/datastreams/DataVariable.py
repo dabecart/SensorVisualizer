@@ -10,7 +10,8 @@ from widgets.FilterableLineEdit import FilterableLineEdit
 from PyQt6.QtCore import QSize
 from tools.Icons import createIcon
 
-from datastreams.DataStream import DataStream, DataStreamSelector
+from datastreams.DataStream import DataStream
+from datastreams.DataStreamSelector import DataStreamSelector
 
 @dataclass
 class DataVariable():

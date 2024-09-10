@@ -11,7 +11,9 @@
 # This project is licensed under the MIT License - see the LICENSE file for details.
 # **************************************************************************************************
 
-from PyQt6.QtWidgets import QWidget, QSizePolicy
+from __future__ import annotations
+
+from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import QPixmap, QImage, QPainter, QIcon
 from PyQt6.QtSvg import QSvgRenderer
 from PyQt6.QtCore import QByteArray, QBuffer, QIODevice, QFile, Qt
@@ -19,8 +21,17 @@ from PyQt6.QtCore import QByteArray, QBuffer, QIODevice, QFile, Qt
 # Don't remove this "unused" import, contains the resource images.
 import ResourcePacket
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from SettingsWindow import ProgramConfig
+
+LIGHT_ICON_COLOR = "#161616"
+DARK_ICON_COLOR  = "#FFF"
+
 class TrackableIcon(QIcon):
-    _instances = []
+    _instances: list[TrackableIcon] = []
+    _theme: ProgramConfig|None      = None
+    _disableIconDeletion: bool      = False
 
     def __init__(self, filePath, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -66,10 +77,11 @@ class TrackableIcon(QIcon):
                 if self.associatedWidget.pixmap() is None:
                     return
                 self.associatedWidget.setPixmap(self.pixmap(self.width, self.height))
-        except:
+        except BaseException as e:
             # If the icon were to be deleted, it would throw a "wrapped C/C++ object of type x has 
             # been deleted", so remove it in that case.
-            self.__class__._instances.remove(self)
+            if not self.__class__._disableIconDeletion:
+                self.__class__._instances.remove(self)
 
     @classmethod
     def recolorAllIcons(cls, theme):
@@ -78,27 +90,33 @@ class TrackableIcon(QIcon):
         
         match theme.colorTheme:
             case 'light':
-                color = "#4D5157"
+                color = LIGHT_ICON_COLOR
             case 'dark':
-                color = "#FFF"
+                color = DARK_ICON_COLOR
 
         for icon in cls._instances:
             icon.recolor(color)
 
-def createIcon(iconPath: str, theme = None) -> TrackableIcon | QIcon:
-    if theme is None:
+    @classmethod
+    def setThemeReference(cls, theme: ProgramConfig):
+        TrackableIcon._theme = theme
+
+def createIcon(iconPath: str, color: str|None) -> QIcon:
+    if color is None or color == "":
         return QIcon(iconPath)
+    return recolorSVG(iconPath, color)
+
+def createThemedIcon(iconPath: str) -> TrackableIcon:
+    if TrackableIcon._theme is None:
+        raise Exception("No theme has been set for the TrackableIcon class.")
     
-    if type(theme) is str:
-        color: str = theme
-    else:
-        color: str = theme.colorTheme
+    color: str = TrackableIcon._theme.colorTheme
 
     match color:
         case 'light':
-            color = "black"
+            color = LIGHT_ICON_COLOR
         case 'dark':
-            color = "white"
+            color = DARK_ICON_COLOR
         case _:
             return recolorSVG(iconPath, color)
         

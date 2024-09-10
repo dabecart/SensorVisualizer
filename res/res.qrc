@@ -22,6 +22,6 @@
     <file alias="loading">loading-circle.svg</file>
 
     <file alias="tab-add">tab-add.svg</file>
-
+    <file alias="stream-serial">stream-serial.svg</file>
 </qresource>
 </RCC>
