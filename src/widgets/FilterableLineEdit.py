@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import QLineEdit, QCompleter
 from PyQt6.QtCore import Qt, QStringListModel
 
 class FilterableLineEdit(QLineEdit):
-    def __init__(self, options=None):
+    def __init__(self, options:list[str]|None = None):
         super().__init__()
 
         # Set up the completer with the provided options
@@ -22,8 +22,6 @@ class FilterableLineEdit(QLineEdit):
         if options is None:
             options = []
         
-        self.setDisabled(not options)
-            
         self.model = QStringListModel(options, self)
         self._completer.setModel(self.model)
 
@@ -34,3 +32,33 @@ class FilterableLineEdit(QLineEdit):
         if not self.text():
             self._completer.setCompletionPrefix("")
             self._completer.complete()
+
+class FilterableIntLineEdit(FilterableLineEdit):
+    def __init__(self, options:list[int]|None =None):
+        if options is None:
+            super().__init__()
+        else:
+            super().__init__([str(i) for i in options])
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        # Allow only digits (0-9) and navigation keys (backspace, delete, arrow keys).
+        if event.key() in (
+            Qt.Key.Key_0, Qt.Key.Key_1, Qt.Key.Key_2, Qt.Key.Key_3, 
+            Qt.Key.Key_4, Qt.Key.Key_5, Qt.Key.Key_6, Qt.Key.Key_7, 
+            Qt.Key.Key_8, Qt.Key.Key_9,
+            Qt.Key.Key_Backspace, Qt.Key.Key_Delete,
+            Qt.Key.Key_Left, Qt.Key.Key_Right, Qt.Key.Key_Home, Qt.Key.Key_End
+        ):
+            super().keyPressEvent(event)
+        else:
+            # Ignore any non-numeric and non-navigation key presses.
+            event.ignore()
+
+    def setOptions(self, options: list[int] | None):
+        if options is None:
+            super().setOptions(options)
+        else:
+            super().setOptions([str(i) for i in options])
+
+    def getInt(self):
+        return int(self.text())

@@ -7,7 +7,9 @@
         "type": "debugpy",
         "request": "launch",
         "program": "src/Main.py",
-        "console": "integratedTerminal"
+        "console": "integratedTerminal",
+        "justMyCode": false
+      
       }
     ]
   }

@@ -172,3 +172,23 @@ CRC_64_ECMA = CRC(
     reverse_input=False,
     reverse_output=False,
 )
+
+DEFAULT_CRC: dict[str, CRC] = {
+    'CRC8-CCITT':           CRC_8_CCITT,
+    'CRC8-SAEJ1850':        CRC_8_SAEJ1850,
+    'CRC8-SAEJ1850 ZERO':   CRC_8_SAEJ1850_ZERO,
+    'CRC8-AUTOSAR':         CRC_8_AUTOSAR,
+    'CRC8-BLUETOOTH':       CRC_8_BLUETOOTH,
+    'CRC8-MAXIM DOW':       CRC_8_MAXIM_DOW,
+    'CRC16-CCITT':          CRC_16_CCITT,
+    'CRC16-XMODEM':         CRC_16_XMODEM,
+    'CRC16-GSM':            CRC_16_GSM,
+    'CRC16-PROFIBUS':       CRC_16_PROFIBUS,
+    'CRC16-MODBUS':         CRC_16_MODBUS,
+    'CRC16-KERMIT':         CRC_16_KERMIT,
+    'CRC32-CRC32':          CRC_32_CRC32,
+    'CRC32-AUTOSAR':        CRC_32_AUTOSAR,
+    'CRC32-BZIP2':          CRC_32_BZIP2,
+    'CRC32-POSIX':          CRC_32_POSIX,
+    'CRC64-ECMA':           CRC_64_ECMA,
+}

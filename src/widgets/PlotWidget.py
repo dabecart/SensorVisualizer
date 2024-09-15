@@ -9,7 +9,7 @@ from pyqtgraph import PlotWidget as QPlotter
 from dataclasses import dataclass, asdict
 
 from tools.Icons import createIcon
-from datastreams.DataVariable import DataVariableSelector
+from datastreams.DataVariableSelector import DataVariableSelector
 
 class PlotWidget(DataWidget):
     def __init__(self, parent=None, startArgs:dict[str, any] | None = None):
