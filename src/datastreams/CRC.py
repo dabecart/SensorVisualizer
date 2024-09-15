@@ -1,3 +1,16 @@
+# **************************************************************************************************
+# @file CRC.py
+# @brief A simple class to calculate CRCs with some common presets.
+#
+# @project   SensorVisualizer
+# @version   1.0
+# @date      2024-09-15
+# @author    @dabecart
+#
+# @license
+# This project is licensed under the MIT License - see the LICENSE file for details.
+# **************************************************************************************************
+
 from dataclasses import dataclass, asdict
 from crc import Calculator, Configuration
 

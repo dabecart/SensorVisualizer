@@ -1,3 +1,16 @@
+# **************************************************************************************************
+# @file Main.py
+# @brief Entry point for the SensorVisualizer. 
+#
+# @project   SensorVisualizer
+# @version   1.0
+# @date      2024-09-15
+# @author    @dabecart
+#
+# @license
+# This project is licensed under the MIT License - see the LICENSE file for details.
+# **************************************************************************************************
+
 import sys
 from PyQt6.QtWidgets import QApplication
 from GUI import GUI

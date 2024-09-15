@@ -1,8 +1,23 @@
+# **************************************************************************************************
+# @file DataStream.py
+# @brief An abstract class with the methods to parse incoming data from a source. The class include
+# methods to get the relevant data from the byte stream by specifying some common EOT (End Of 
+# Transmission), such as CRC, message's header...
+#
+# @project   SensorVisualizer
+# @version   1.0
+# @date      2024-09-15
+# @author    @dabecart
+#
+# @license
+# This project is licensed under the MIT License - see the LICENSE file for details.
+# **************************************************************************************************
+
 # To type DataStream inside _instances.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import ClassVar
 
 import shlex, os, subprocess
@@ -14,6 +29,7 @@ from base64 import b64decode
 
 from enum import Enum
 from datastreams.CRC import CRC
+from tools.SignalEmitter import SignalEmitter
 
 from PyQt6.QtWidgets import QVBoxLayout
 
@@ -113,9 +129,11 @@ class DataStream(ABC):
     def nameAvailable(name: str) -> bool:
         return name not in DataStream._instances
 
-    preprocessor:   str|None  = None
-    name:           str|None  = None
-    _inputBuffer:   bytearray = bytearray()
+    preprocessor:       str|None   = None
+    name:               str|None   = None
+    availableVbes:      set[str]   = field(default_factory=set)
+    _inputBuffer:       bytearray  = bytearray()
+    newAvailableVbesSignal: SignalEmitter = SignalEmitter()
 
     # This function should return a bytearray of raw data, which may or may not be already 
     # processed.
@@ -167,7 +185,15 @@ class DataStream(ABC):
             input = input.decode("utf-8")
 
         # Parse the input as a dictionary.
-        return self._parseDict(input)
+        outDict = self._parseDict(input)
+
+        prevLen = len(self.availableVbes)
+        # Add the keys to the available variables set.
+        self.availableVbes.update(outDict.keys())
+
+        if(len(self.availableVbes) != prevLen):
+            self.newAvailableVbesSignal.emit()
+        return outDict
 
     def _executeCommand(self, cmd: str, cwd: str|None) -> dict[str, any]:
         commandArgs = shlex.split(cmd)
@@ -258,12 +284,12 @@ class DataStream(ABC):
                 # Append value to the list of values for this key.
                 resultDict[key].append(value)
 
-            # Convert lists with a single item back to a single value.
-            for key in resultDict:
-                if len(resultDict[key]) == 1:
-                    resultDict[key] = resultDict[key][0]
+        # Convert lists with a single item back to a single value.
+        for key in resultDict:
+            if len(resultDict[key]) == 1:
+                resultDict[key] = resultDict[key][0]
 
-            return dict(resultDict)
+        return dict(resultDict)
         
     def _trimTillEOTBytes(self, input: bytes, eotBytes: bytes) -> bytearray|None:
         # This method takes into account if input is empty (returns -1) or if eotBytes is empty 
@@ -410,6 +436,9 @@ class DataStream(ABC):
 
     def _processEOT(self, eotArgs: dict[str,any], input: bytes) -> bytearray|None:
         match self._config.eot:
+            case EOT.NONE:
+                return bytearray(input)
+
             case EOT.CARRIAGE:
                 return self._eotCarriage(input)
 

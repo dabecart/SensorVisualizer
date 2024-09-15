@@ -1,3 +1,16 @@
+# **************************************************************************************************
+# @file PlotWidget.py
+# @brief Inherits from DataWidget. A simple plot graph for the visualizer. 
+#
+# @project   SensorVisualizer
+# @version   1.0
+# @date      2024-09-15
+# @author    @dabecart
+#
+# @license
+# This project is licensed under the MIT License - see the LICENSE file for details.
+# **************************************************************************************************
+
 from PyQt6.QtWidgets import (
     QMenu, QVBoxLayout, QHBoxLayout, QDialog, QPushButton, QComboBox, QLabel
 )

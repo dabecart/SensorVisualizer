@@ -1,3 +1,16 @@
+# **************************************************************************************************
+# @file FilterableLineEdit.py
+# @brief A QLineEdit that lists some predefined options but still lets you write what you want.
+#
+# @project   SensorVisualizer
+# @version   1.0
+# @date      2024-09-15
+# @author    @dabecart
+#
+# @license
+# This project is licensed under the MIT License - see the LICENSE file for details.
+# **************************************************************************************************
+
 from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import QLineEdit, QCompleter
 from PyQt6.QtCore import Qt, QStringListModel

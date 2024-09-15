@@ -1,3 +1,17 @@
+# **************************************************************************************************
+# @file DataWidget.py
+# @brief An abstract class with the common methods to create a widget on the main display of the 
+# visualizer.
+#
+# @project   SensorVisualizer
+# @version   1.0
+# @date      2024-09-15
+# @author    @dabecart
+#
+# @license
+# This project is licensed under the MIT License - see the LICENSE file for details.
+# **************************************************************************************************
+
 from abc import ABC, abstractmethod
 
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLayout, QMenu

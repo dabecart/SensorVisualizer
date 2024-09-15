@@ -1,3 +1,16 @@
+# **************************************************************************************************
+# @file WindowArea.py
+# @brief Inherits from QMdiArea. The main container for widgets.Window objects.
+#
+# @project   SensorVisualizer
+# @version   1.0
+# @date      2024-09-15
+# @author    @dabecart
+#
+# @license
+# This project is licensed under the MIT License - see the LICENSE file for details.
+# **************************************************************************************************
+
 from PyQt6.QtWidgets import QMdiArea, QRubberBand
 from PyQt6.QtCore import QLine, Qt, QRect, QPoint
 from PyQt6.QtGui import  QPainter, QPen, QPaintEvent

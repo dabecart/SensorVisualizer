@@ -1,3 +1,16 @@
+# **************************************************************************************************
+# @file LabeledLineEdit.py
+# @brief A QLineEdit that lets you set an error message.
+#
+# @project   SensorVisualizer
+# @version   1.0
+# @date      2024-09-15
+# @author    @dabecart
+#
+# @license
+# This project is licensed under the MIT License - see the LICENSE file for details.
+# **************************************************************************************************
+
 from PyQt6.QtWidgets import (
     QWidget, QLineEdit, QLabel, QHBoxLayout)
 from PyQt6.QtCore import pyqtSignal

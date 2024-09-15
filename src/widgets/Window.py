@@ -1,3 +1,17 @@
+# **************************************************************************************************
+# @file Window.py
+# @brief Inherits from QMdiSubWindow. An window inside the Visualizer main pane. It can be resized,
+# moved and adjusted relative to other near Windows.
+#
+# @project   SensorVisualizer
+# @version   1.0
+# @date      2024-09-15
+# @author    @dabecart
+#
+# @license
+# This project is licensed under the MIT License - see the LICENSE file for details.
+# **************************************************************************************************
+
 from PyQt6.QtWidgets import QMdiSubWindow
 from PyQt6.QtCore import Qt, QRect, QLine, QSize, QEvent
 from PyQt6.QtGui import QContextMenuEvent, QResizeEvent, QMouseEvent, QMoveEvent, QEnterEvent

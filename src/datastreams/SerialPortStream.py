@@ -1,3 +1,16 @@
+# **************************************************************************************************
+# @file SerialPortStream.py
+# @brief Inheriting from DataStream. This data stream receives its data from a serial port.
+#
+# @project   SensorVisualizer
+# @version   1.0
+# @date      2024-09-15
+# @author    @dabecart
+#
+# @license
+# This project is licensed under the MIT License - see the LICENSE file for details.
+# **************************************************************************************************
+
 import serial.tools
 import serial.tools.list_ports
 
@@ -31,7 +44,7 @@ class HWConfig():
 @dataclass
 class SerialPortStreamConfig():
     hwConfig:   HWConfig        = field(default_factory=lambda: HWConfig())
-    eot:        EOT             = EOT.TIMEOUT
+    eot:        EOT             = EOT.NONE
     eotArgs:    dict[str,any]   = field(default_factory=lambda: {})
 
 class SerialPortStream(DataStream):
@@ -60,7 +73,7 @@ class SerialPortStream(DataStream):
             self.autoDeltaTime:     float       = self._config.hwConfig.packetTime()
 
     def __del__(self):
-        if type(self._serial) is serial.Serial:
+        if self._serial is not None:
             self._serial.close()
 
     @classmethod

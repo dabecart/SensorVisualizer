@@ -1,3 +1,16 @@
+# **************************************************************************************************
+# @file DataVariableSelector.py
+# @brief A GUI Dialog to create or select a DataVariable to attach to a widget.
+#
+# @project   SensorVisualizer
+# @version   1.0
+# @date      2024-09-15
+# @author    @dabecart
+#
+# @license
+# This project is licensed under the MIT License - see the LICENSE file for details.
+# **************************************************************************************************
+
 from PyQt6.QtWidgets import QDialog, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton
 from widgets.FilterableLineEdit import FilterableLineEdit
 from PyQt6.QtCore import QSize
@@ -71,18 +84,26 @@ class DataVariableSelector(QDialog):
         layout.addStretch()
         layout.addLayout(buttonsLayout)
 
-    def streamChanged(self, sourceName: str):
-        if sourceName in DataStream._instances:
-            self.variableLineEdit.setEnabled(True)
-            variableNames: list[str] =  \
-                [stream for stream in DataVariable._instances.keys() if stream.endswith(sourceName)]
-            
-            # This will automatically update the variables.
-            self.variableLineEdit.setOptions(variableNames)
-            self.variableLineEdit.setPlaceholderText("You may input your own variable...")
-        else:
+    def updateVariableLineEdit(self):
+        # [stream for stream in DataVariable._instances.keys() if stream.endswith(self.selectedStream.name)]
+        
+        variableNames: list[str] = list(self.selectedStream.availableVbes)
+        # This will automatically update the variables.
+        print(variableNames)
+        self.variableLineEdit.setOptions(variableNames)
+
+    def streamChanged(self):
+        if self.selectedStream is None:
             self.variableLineEdit.setEnabled(False)
             self.variableLineEdit.setPlaceholderText("Select a data stream first...")
+        else:
+            self.variableLineEdit.setEnabled(True)
+            self.variableLineEdit.setPlaceholderText("You may input your own variable...")
+            self.updateVariableLineEdit()
+
+            self.selectedStream.newAvailableVbesSignal.connect(
+                lambda: self.updateVariableLineEdit()
+            )
 
     def discardVariable(self):
         self.close()
@@ -92,6 +113,9 @@ class DataVariableSelector(QDialog):
 
     def runAction(self, action: str, actionStack: str | None, *args):
         if action == "stream-new":
+            if self.selectedStream is not None:
+                self.selectedStream.newAvailableVbesSignal.disconnectAll()
+
             self.selectedStream = DataStreamSelector(self).exec()
 
             if self.selectedStream is not None:
@@ -102,7 +126,7 @@ class DataVariableSelector(QDialog):
                     self.streamLineEdit.setOptions(streamNames)
                     self.streamLineEdit.setEnabled(len(streamNames) > 0)
 
-                # Setting the text updates the variables.
+                # Setting the text updates the variables on streamChanged().
                 self.streamLineEdit.setText(self.selectedStream.name)
         else:
             print(f'Action {action} is not defined on DataVariableSelector')

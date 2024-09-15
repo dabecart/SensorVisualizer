@@ -1,12 +1,28 @@
+# **************************************************************************************************
+# @file DataListener.py
+# @brief Functions running in parallel with the GUI that listens to all DataStreams and parses all
+# available variables and updates their values.
+#
+# @project   SensorVisualizer
+# @version   1.0
+# @date      2024-09-15
+# @author    @dabecart
+#
+# @license
+# This project is licensed under the MIT License - see the LICENSE file for details.
+# **************************************************************************************************
+
 from datastreams.DataStream import DataStream
 from datastreams.DataVariable import DataVariable
 
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
 
-class DataListener(QThread):
+class DataListener(QObject):
     # Signal to main thread to update the widgets associated with the values coming from the 
     # streams. 
     updateHooks = pyqtSignal(list)
+    # Signal emitted when the while loop ends.
+    listenerFinished = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -16,12 +32,12 @@ class DataListener(QThread):
         while self.running:
             self._processStreams()
             # A necessary evil right here...
-            self.msleep(10)
+            QThread.msleep(10)
+        self.listenerFinished.emit()
 
+    @pyqtSlot()
     def stop(self):
         self.running = False
-        # Wait for the loop to finish.
-        self.wait() 
 
     # TODO: Add functions to initialize and set values for the streams when reading from a file.
 
@@ -32,10 +48,12 @@ class DataListener(QThread):
             # Find a DataStream with available data.
             if not stream.dataAwaiting():
                 continue
-        
+                
+            print(f"\n\nProcessing {streamName}")
             # Fetch the data from the stream and convert it to a dictionary of variable names and 
             # values.
             inputData: dict[str, any]|None = stream.getDataFields()
+            print(f"inputData {inputData}")
             if inputData is None: 
                 continue
 
@@ -53,5 +71,6 @@ class DataListener(QThread):
                 updateVbeList.append((vbeObject, vbeValue))
 
         if updateVbeList:
+            print("update list emitted!")
             # Emit the signal only if there are variables to update.
             self.updateHooks.emit(updateVbeList)

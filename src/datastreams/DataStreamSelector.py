@@ -1,3 +1,16 @@
+# **************************************************************************************************
+# @file DataStreamSelector.py
+# @brief A GUI Dialog to create a new DataStream.
+#
+# @project   SensorVisualizer
+# @version   1.0
+# @date      2024-09-15
+# @author    @dabecart
+#
+# @license
+# This project is licensed under the MIT License - see the LICENSE file for details.
+# **************************************************************************************************
+
 import os, re
 import traceback
 
@@ -38,12 +51,9 @@ class DataStreamSelector(QDialog):
         eotGroupBoxLayout = QVBoxLayout(eotGroupBox)
         
         self.eotSelectionComboBox = QComboBox()
-        self.eotSelectionComboBox.addItems(EOT.getEOTNames())
         self.eotSelectionComboBox.currentTextChanged.connect(self.changeConfigFieldsForEOTType)
-        self.eotSelectionComboBox.setCurrentIndex(0)
 
         self.eotConfigurationLayout = QFormLayout()
-
         eotGroupBoxLayout.addWidget(self.eotSelectionComboBox)
         eotGroupBoxLayout.addLayout(self.eotConfigurationLayout)
 
@@ -99,7 +109,11 @@ class DataStreamSelector(QDialog):
         layout.addStretch()
         layout.addLayout(buttonsLayout)
 
+        # Set the values of the fields.
         self.typeComboBox.addItem(createThemedIcon(':stream-serial'), "Serial port")
+        
+        self.eotSelectionComboBox.addItems(EOT.getEOTNames())
+        self.eotSelectionComboBox.setCurrentIndex(0)
 
     def changeConfigFieldsForStreamType(self):
         # Clear the widgets from the streamConfigGroupBoxLayout.
@@ -162,6 +176,8 @@ class DataStreamSelector(QDialog):
         # Converts from the text on the combo box (from getEOTNames()) to the correspondent EOT 
         # enum.
         eot: EOT = EOT(EOT.getEOTNames().index(self.eotSelectionComboBox.currentText()))
+        self.currentDataStream._config.eot = eot
+
         match eot:
             case EOT.NONE, EOT.CARRIAGE, EOT.RETURN, EOT.CARRIAGE_RETURN:
                 pass

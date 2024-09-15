@@ -1,3 +1,16 @@
+# **************************************************************************************************
+# @file UndoRedo.py
+# @brief An utility to undo/redo actions in the program.
+#
+# @project   SensorVisualizer
+# @version   1.0
+# @date      2024-09-15
+# @author    @dabecart
+#
+# @license
+# This project is licensed under the MIT License - see the LICENSE file for details.
+# **************************************************************************************************
+
 from collections import deque
 
 _MAX_UNDO_REDO_STEPS = 100

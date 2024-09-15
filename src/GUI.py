@@ -1,3 +1,16 @@
+# **************************************************************************************************
+# @file GUI.py
+# @brief The main display of the SensorVisualizer.
+#
+# @project   SensorVisualizer
+# @version   1.0
+# @date      2024-09-15
+# @author    @dabecart
+#
+# @license
+# This project is licensed under the MIT License - see the LICENSE file for details.
+# **************************************************************************************************
+
 from PyQt6.QtWidgets import (
     QMainWindow, QStatusBar, QToolButton, QTabWidget, QLabel, QWidget, QTabBar, QMenu, QLineEdit, 
     QMessageBox, QFileDialog
@@ -5,7 +18,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import (
     QCloseEvent, QContextMenuEvent, QFocusEvent, QKeyEvent, QFontMetrics, QResizeEvent, QPalette
 )
-from PyQt6.QtCore import Qt, pyqtSlot
+from PyQt6.QtCore import Qt, pyqtSlot, QThread
 
 from widgets.WindowArea import WindowArea
 from widgets.Window import Window
@@ -188,9 +201,19 @@ class GUI(QMainWindow):
         self.statusBar.addPermanentWidget(self.statusBarPermanent)
 
         # Initialize the DataListener thread.
+        self.dataListenerThread = QThread()
         self.dataListener = DataListener()
+        self.dataListener.moveToThread(self.dataListenerThread)
+        
+        self.dataListenerThread.started.connect(self.dataListener.run)
+
+        self.dataListener.listenerFinished.connect(self.dataListener.deleteLater)
+        self.dataListener.listenerFinished.connect(self.dataListenerThread.quit)
+        self.dataListener.listenerFinished.connect(self.dataListenerThread.deleteLater)
+
         self.dataListener.updateHooks.connect(self.runWidgetHooks)
-        self.dataListener.start()
+        
+        self.dataListenerThread.start()
 
     @pyqtSlot(list)
     def runWidgetHooks(self, updateVbeList: list[tuple[DataVariable, any]]):

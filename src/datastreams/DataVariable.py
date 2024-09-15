@@ -1,3 +1,16 @@
+# **************************************************************************************************
+# @file DataVariable.py
+# @brief When data is parsed from a DataStream, all fields get converted into DataVariables.
+#
+# @project   SensorVisualizer
+# @version   1.0
+# @date      2024-09-15
+# @author    @dabecart
+#
+# @license
+# This project is licensed under the MIT License - see the LICENSE file for details.
+# **************************************************************************************************
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

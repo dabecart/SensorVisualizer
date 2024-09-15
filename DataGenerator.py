@@ -9,7 +9,12 @@ outDict = {
 
 ser = serial.Serial("COM3")
 while True:
-    out = json.dumps(outDict).encode('utf-8')
+    out: str = "{"
+    for key, val in outDict.items():
+        out += key +": " +str(val) + ", "
+    out = out[:-2] + "}"
+
+    out = out.encode('utf-8')
     print(out)
     ser.write(out)
 
